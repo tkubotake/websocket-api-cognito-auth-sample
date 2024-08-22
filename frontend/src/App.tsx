@@ -2,7 +2,8 @@ import { Amplify } from "aws-amplify";
 import config from "./config";
 import "@aws-amplify/ui-react/styles.css";
 import { Authenticator, Button } from "@aws-amplify/ui-react";
-import Echo from "./components/echo";
+// import Echo from "./components/echo";
+import Chat from "./components/chat";
 import { AppBar, Avatar, Container, Toolbar, Typography } from "@mui/material";
 
 function App() {
@@ -40,8 +41,11 @@ function App() {
                 </Toolbar>
               </AppBar>
               <main>
-                <Container maxWidth="lg" sx={{ m: 2 }}>
+                {/* <Container maxWidth="lg" sx={{ m: 2 }}>
                   <Echo />
+                </Container> */}
+                <Container maxWidth="lg" sx={{ m: 2 }}>
+                  <Chat />
                 </Container>
               </main>
             </>

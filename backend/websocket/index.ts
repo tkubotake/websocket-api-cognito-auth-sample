@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT-0
 import { APIGatewayProxyHandler } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DeleteCommand, DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { DeleteCommand, DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { ApiGatewayManagementApiClient, PostToConnectionCommand } from "@aws-sdk/client-apigatewaymanagementapi";
 
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -43,36 +43,50 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
     }
   }
 
-  // Just echo back messages in other route than connect, disconnect (for testing purpose)
-  const domainName = event.requestContext.domainName!;
-  // When we use a custom domain, we don't need to append a stage name
-  const endpoint = domainName.endsWith("amazonaws.com")
-    ? `https://${event.requestContext.domainName}/${event.requestContext.stage}`
-    : `https://${event.requestContext.domainName}`;
-  const managementApi = new ApiGatewayManagementApiClient({
-    endpoint,
-  });
+  if (routeKey === "sendmessage") {
+    try {
+      const body = JSON.parse(event.body || '{}');
+      const message = body.data?.message || 'Empty message';
 
-  try {
-    await managementApi.send(
-      new PostToConnectionCommand({
-        ConnectionId: connectionId,
-        Data: Buffer.from(JSON.stringify({ message: event.body }), "utf-8"),
-      }),
-    );
-  } catch (e: any) {
-    if (e.statusCode == 410) {
-      await removeConnectionId(connectionId);
-    } else {
-      console.log(e);
-      throw e;
+      const connections = await client.send(new ScanCommand({ TableName: ConnectionTableName }));
+      const apiGateway = new ApiGatewayManagementApiClient({
+        endpoint: getEndpoint(event.requestContext),
+      });
+
+      console.log('connections.Items:', connections.Items);
+
+      const postCalls = connections.Items?.map(async (connection) => {
+        try {
+          await apiGateway.send(new PostToConnectionCommand({
+            ConnectionId: connection.connectionId,
+            Data: Buffer.from(JSON.stringify({ message: message + " conId:" + connection.connectionId + "sender:" + connectionId }), 'utf-8'),
+          }));
+          console.log(`Message sent to ${connection.connectionId}`);
+        } catch (e: any) {
+          if (e.$metadata && e.$metadata.httpStatusCode === 410) {
+            await removeConnectionId(connection.connectionId);
+          } else {
+            console.error(`Error sending message to ${connection.connectionId}:`, e);
+          }
+        }
+      }) || [];
+
+      console.log('postCalls:', postCalls);
+
+      await Promise.all(postCalls);
+
+      return { statusCode: 200, body: "Message sent." };
+    } catch (err) {
+      console.error('Error sending message:', err);
+      return { statusCode: 500, body: "Failed to send message." };
     }
   }
-
-  return { statusCode: 200, body: "Received." };
+  // その他のルートは処理しない
+  return { statusCode: 400, body: "Invalid route." };
 };
 
 const removeConnectionId = async (connectionId: string) => {
+  console.log(`Removing connectionId: ${connectionId}`);
   return await client.send(
     new DeleteCommand({
       TableName: ConnectionTableName,
@@ -81,4 +95,11 @@ const removeConnectionId = async (connectionId: string) => {
       },
     }),
   );
+};
+
+const getEndpoint = (requestContext: any): string => {
+  const domainName = requestContext.domainName!;
+  return domainName.endsWith("amazonaws.com")
+    ? `https://${requestContext.domainName}/${requestContext.stage}`
+    : `https://${requestContext.domainName}`;
 };
