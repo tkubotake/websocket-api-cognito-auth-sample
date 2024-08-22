@@ -25,7 +25,7 @@ const Chat: FC = () => {
       const currentSession = await fetchAuthSession();
       const idToken = currentSession.tokens?.idToken;
 
-      const newClient = new WebSocket(`${config.apiEndpoint}?idToken=${idToken}`);
+      const newClient = new WebSocket(`${config.apiEndpoint}?idToken=${idToken}&roomId=roomtest1`);
 
       const waitForConnection = (socket: WebSocket) => {
         return new Promise((resolve, reject) => {
@@ -39,8 +39,11 @@ const Chat: FC = () => {
             reject(error);
           };
 
-          socket.onclose = () => {
+          socket.onclose = (event) => {
             setStatus("closed");
+            if (event.code === 403) {
+              alert("Access denied to the room.");
+            }
             if (!closed) {
               // クライアントが閉じられていない場合は再接続を試みる
               setTimeout(async () => {
@@ -90,7 +93,6 @@ const Chat: FC = () => {
   };
 
   useEffect(() => {
-    alert
     initializeClient();
     return () => {
       if (client) {
