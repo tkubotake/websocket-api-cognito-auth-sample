@@ -2,7 +2,7 @@ import { FC, useEffect, useReducer, useState } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { Typography, Button, TextField, Stack } from "@mui/material";
 import { SubmitHandler, useForm } from "react-hook-form";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import config from "../config";
 
 type ChatInput = {
@@ -60,17 +60,42 @@ const Chat: FC = () => {
         await waitForConnection(newClient);
         // 接続が確立されたら次の処理を設定する
         newClient.onmessage = (message: any) => {
-          const messageStr = JSON.parse(message.data);
-          setMessages((prev) => [...prev, messageStr.message]);
+          const messageData = JSON.parse(message.data);
+          console.log("Received message:", messageData);
+
+          if (messageData.action === "gethistory") {
+            // 履歴のメッセージを受信した場合
+            const historyMessages = messageData.history.map((item: any) => item.message);
+            setMessages((prev) => [...historyMessages, ...prev]);
+          } else if (messageData.action === "sendmessage") {
+            // 新しいメッセージを受信した場合
+            setMessages((prev) => [...prev, messageData.message]);
+          }
         };
 
         setClient(newClient);
+        fetchChatHistory(newClient);
       } catch (error) {
         console.error("Failed to connect WebSocket:", error);
       }
     } catch (error) {
       console.error("Failed to initialize WebSocket client:", error);
       setStatus("error");
+    }
+  };
+
+  // チャット履歴を取得する
+  const fetchChatHistory = async (socket: WebSocket) => {
+    if (socket) {
+      alert("Fetching chat history...");
+      const messageData = {
+        action: "gethistory",
+        data: { roomId }
+      };
+      socket.send(JSON.stringify(messageData));
+    } else {
+      console.error("WebSocket is not connected");
+      setStatus("not connected");
     }
   };
 
@@ -90,7 +115,7 @@ const Chat: FC = () => {
 
   const handleUserKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      handleSubmit(sendMessage)(); // this won't be triggered
+      handleSubmit(sendMessage)();
     }
   };
 
@@ -116,7 +141,7 @@ const Chat: FC = () => {
         status: {status}
       </Typography>
       <Stack direction="row" spacing={2} sx={{ m: 5 }}>
-      <TextField id="message" label="Message" size="small" required {...register("message")} onKeyPress={handleUserKeyPress} sx={{ width: 400 }} />
+        <TextField id="message" label="Message" size="small" required {...register("message")} onKeyPress={handleUserKeyPress} sx={{ width: 400 }} />
         <Button variant="contained" color="primary" onClick={handleSubmit(sendMessage)}>
           Send
         </Button>

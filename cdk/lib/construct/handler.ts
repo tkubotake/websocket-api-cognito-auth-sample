@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: MIT-0
 
 import { Construct } from "constructs";
-import { aws_dynamodb as dynamo, aws_lambda as lambda, aws_lambda_nodejs as lambdanode, aws_cognito as cognito, RemovalPolicy } from "aws-cdk-lib";
+import { aws_dynamodb as dynamo, aws_lambda as lambda, aws_lambda_nodejs as lambdanode, aws_cognito as cognito } from "aws-cdk-lib";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 
 interface HandlerProps {
   connectionIdTable: dynamo.ITable;
+  chatHistoryTable: dynamo.ITable;
   userPool: cognito.IUserPool;
   userPoolClient: cognito.IUserPoolClient;
 }
@@ -37,10 +38,13 @@ export class Handler extends Construct {
       entry: "../backend/websocket/index.ts",
       environment: {
         CONNECTION_TABLE_NAME: props.connectionIdTable.tableName,
+        CHAT_HISTORY_TABLE_NAME: props.chatHistoryTable.tableName,  // chatHistoryTableの環境変数を追加
       },
     });
 
+    // DynamoDBの読み書き権限を追加
     props.connectionIdTable.grantReadWriteData(websocketHandler);
+    props.chatHistoryTable.grantReadWriteData(websocketHandler);
 
     this.authHandler = authHandler;
     this.websocketHandler = websocketHandler;

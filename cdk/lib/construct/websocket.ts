@@ -44,6 +44,11 @@ export class WebSocket extends Construct {
       integration: new agwi.WebSocketLambdaIntegration("SendMessageIntegration", props.websocketHandler),
     });
 
+    // カスタムルート 'gethistory' の追加
+    this.api.addRoute('gethistory', {
+      integration: new agwi.WebSocketLambdaIntegration("GetHistoryIntegration", props.websocketHandler),
+    });
+    
     new agw.WebSocketStage(this, `Stage`, {
       webSocketApi: this.api,
       stageName: this.defaultStageName,
