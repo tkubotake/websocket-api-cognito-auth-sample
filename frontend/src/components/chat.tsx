@@ -2,6 +2,7 @@ import { FC, useEffect, useReducer, useState } from "react";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { Typography, Button, TextField, Stack } from "@mui/material";
 import { SubmitHandler, useForm } from "react-hook-form";
+import { useParams, useNavigate } from "react-router-dom";
 import config from "../config";
 
 type ChatInput = {
@@ -9,6 +10,7 @@ type ChatInput = {
 };
 
 const Chat: FC = () => {
+  const { roomId } = useParams<{ roomId: string }>();
   const { register, handleSubmit, reset } = useForm<ChatInput>();
   const [status, setStatus] = useState("initializing");
   const [messages, setMessages] = useState<string[]>([]);
@@ -25,7 +27,7 @@ const Chat: FC = () => {
       const currentSession = await fetchAuthSession();
       const idToken = currentSession.tokens?.idToken;
 
-      const newClient = new WebSocket(`${config.apiEndpoint}?idToken=${idToken}&roomId=roomtest1`);
+      const newClient = new WebSocket(`${config.apiEndpoint}?idToken=${idToken}&roomId=${roomId}`);
 
       const waitForConnection = (socket: WebSocket) => {
         return new Promise((resolve, reject) => {
@@ -86,7 +88,7 @@ const Chat: FC = () => {
     }
   };
 
-  const handleUserKeyPress = (e: any) => {
+  const handleUserKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       handleSubmit(sendMessage)(); // this won't be triggered
     }
@@ -107,13 +109,14 @@ const Chat: FC = () => {
       <Typography variant="h4" gutterBottom>
         WebSocket Chat demo
       </Typography>
-
+      <Typography variant="subtitle1" sx={{ color: "#808080" }} gutterBottom>
+        Current Room: {roomId}
+      </Typography>
       <Typography variant="subtitle1" sx={{ color: "#808080" }} gutterBottom>
         status: {status}
       </Typography>
-
       <Stack direction="row" spacing={2} sx={{ m: 5 }}>
-        <TextField id="message" label="Message" size="small" required {...register("message")} onKeyPress={handleUserKeyPress} sx={{ width: 400 }} />
+      <TextField id="message" label="Message" size="small" required {...register("message")} onKeyPress={handleUserKeyPress} sx={{ width: 400 }} />
         <Button variant="contained" color="primary" onClick={handleSubmit(sendMessage)}>
           Send
         </Button>
