@@ -45,7 +45,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
       return { statusCode: 500, body: "Disconnection failed." };
     }
   }
-  else if (routeKey === "sendmessage") {
+  else if (routeKey === "send_message") {
     try {
       const timestamp = new Date().toISOString();
       const body = JSON.parse(event.body || '{}');
@@ -100,7 +100,7 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
           await apiGateway.send(new PostToConnectionCommand({
             ConnectionId: connection.connectionId,
             Data: Buffer.from(JSON.stringify({
-              action: "sendmessage",  // actionフィールドを追加
+              action: "send_message",  // actionフィールドを追加
               message: message + " conId:" + connection.connectionId + " sender:" + connectionId
             }), 'utf-8'),
           }));

@@ -39,8 +39,8 @@ export class WebSocket extends Construct {
         integration: new agwi.WebSocketLambdaIntegration("DefaultIntegration", props.websocketHandler),
       },
     });
-    // カスタムルート 'sendmessage' の追加
-    this.api.addRoute('sendmessage', {
+    // カスタムルート 'send_message' の追加
+    this.api.addRoute('send_message', {
       integration: new agwi.WebSocketLambdaIntegration("SendMessageIntegration", props.websocketHandler),
     });
 

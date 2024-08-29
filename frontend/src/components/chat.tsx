@@ -67,7 +67,7 @@ const Chat: FC = () => {
             // 履歴のメッセージを受信した場合
             const historyMessages = messageData.history.map((item: any) => item.message);
             setMessages((prev) => [...historyMessages, ...prev]);
-          } else if (messageData.action === "sendmessage") {
+          } else if (messageData.action === "new_message") {
             // 新しいメッセージを受信した場合
             setMessages((prev) => [...prev, messageData.message]);
           }
@@ -102,7 +102,7 @@ const Chat: FC = () => {
   const sendMessage: SubmitHandler<ChatInput> = async (input) => {
     if (client != null) {
       const messageData = {
-        action: "sendmessage",
+        action: "send_message",
         data: { message: input.message }
       };
       client.send(JSON.stringify(messageData));
