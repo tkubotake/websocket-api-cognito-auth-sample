@@ -18,6 +18,7 @@ export class BackendStack extends cdk.Stack {
       userPool: auth.userPool,
       userPoolClient: auth.userPoolClient,
       connectionIdTable: storage.connectionIdTable,
+      chatHistoryTable: storage.chatHistoryTable,
     });
 
     const websocket = new WebSocket(this, `Websocket`, {
@@ -42,6 +43,10 @@ export class BackendStack extends cdk.Stack {
 
       new cdk.CfnOutput(this, `WebSocketEndpoint`, {
         value: websocket.apiEndpoint,
+      });
+
+      new cdk.CfnOutput(this, `ChatHistoryTableName`, {
+        value: storage.chatHistoryTable.tableName,
       });
     }
   }
